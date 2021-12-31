@@ -21,14 +21,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     src/main.cpp \
+    src/settingsdlg.cpp \
     src/uTextCorrector.cpp \
     src/widget.cpp
 
 HEADERS += \
+    src/settingsdlg.h \
     src/uTextCorrector.h \
     src/widget.h
 
 FORMS += \
+    src/settingsdlg.ui \
     src/widget.ui
 
 # Default rules for deployment.

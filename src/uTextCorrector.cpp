@@ -2,7 +2,11 @@
 #include <QDebug>
 
 const QString gCirLetters = QString::fromUtf8("абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ");
+const QString gCirLettersLC = QString::fromUtf8("абвгдеёжзийклмнопрстуфхцчшщъыьэюя");
+const QString gCirLettersUC = QString::fromUtf8("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ");
 const QString gLatLetters = QString::fromUtf8("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+
+const QString gLettersES = QString::fromUtf8(".;");
 
 const QString gCirLettersForm = QString::fromUtf8("аеогпрсхубАЕОРСХУ");
 const QString gLatLettersForm = QString::fromUtf8("aeornpcxy6AEOPCXY");
@@ -24,6 +28,7 @@ uTextCorrector::uTextCorrector(){
 	m_currentPack = m_ruPack;
 	m_lisrWidget = 0;
 	m_statusLabel = 0;
+	m_correctWordsAndChar = true;
 
 
 }
@@ -31,6 +36,9 @@ uTextCorrector::uTextCorrector(){
 bool uTextCorrector::loadDictionary(QString &psFile)
 {
 	bool vRetVal = false;
+	if (!m_correctWordsAndChar) {
+		return vRetVal;
+	}
 	if (dictFile.compare(psFile) == 0) {
 		return true;
 	}
@@ -190,10 +198,144 @@ void uTextCorrector::status(QString &psStatuStr)
 	qApp->processEvents();
 }
 
+bool endsWithCharOr(QString& psSrc, QString psVariants){
+	QChar vChr;
+	for (int var = 0; var < psVariants.length(); ++var) {
+		vChr = psVariants.at(var);
+		if (psSrc.endsWith(vChr)) {
+			return true;
+		}
+
+	}
+	return false;
+}
 
 QString uTextCorrector::correct(QString &psIn)
 {
 	m_inputStr = psIn, m_outputStr = "";
+	if (m_correctWordsAndChar) {
+		correctWordsAll();
+	}
+	if (m_unionSentence) {
+		correctUnionSentence();
+	}
+	correctTest();
+	return m_outputStr;
+}
+/*
+46
+47
+Ни ко ла?й  Копе?рник (1473—1543). На-
+блюдения за звёздами и планетами, изу-
+чение трудов древних мыслителей и сво-
+их современников, сложные математи-
+ческие расчёты позволили ему сделать
+вывод о том, что Земля обращается во-
+круг Солнца. Центром мира, по убежде-
+нию Коперника, является Солнце, во-
+круг которого движутся все планеты,
+вращаясь одновременно вокруг своих
+осей. Звёзды, по Копернику, неподвиж-
+ны и находятся на огромных расстояни-
+ях от Земли и Солнца. Их вращение во-
+круг Земли кажущееся, и связано оно с
+тем, что наша планета сама вращается вокруг своей оси, совершая
+один оборот за 24 часа. Звёзды образуют сферу, которая ограничи-
+вает Вселенную (рис. 43, 44).
+*/
+
+QString uTextCorrector::correctUnionSentence()
+{
+	QString line, line2, vWord, line_part,  vRezultText;
+	QString src = m_inputStr;
+	if (m_correctWordsAndChar) {
+		src = m_outputStr;
+	}
+//	const QString gCirLettersLC = QString::fromUtf8("абвгдеёжзийклмнопрстуфхцчшщъыьэюя");
+//	const QString gCirLettersUC = QString::fromUtf8("АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ");
+//	const QString gLatLetters = QString::fromUtf8("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+
+//	const QString gLettersES = QString::fromUtf8(".;");
+	QStringList strings_txt = src.split('\n'), line_items;
+	src = "";
+	int vPosStrings_txt = -1;
+	uStringType vType, vCurrType;
+	// Cyfxfkf cktgbv?
+	foreach (line, strings_txt) {
+		vPosStrings_txt++;
+		line = line.trimmed();
+		line_items = line.split(" ");
+		if (line_items.size() == 1) {
+			// Уберем строки содержащие только единичный цифровой фрагмент.
+			vType = typeString(line);
+			if (uDigit == vType) {
+				strings_txt.replace(vPosStrings_txt,"");
+				vRezultText.append("\n");
+				continue;
+			}
+		}
+		if (line.isEmpty()/* || line.startsWith('§')*/) {
+			vRezultText.append("\n");
+			continue;
+		}
+		if (!endsWithCharOr(line,".;?)")) {
+			vRezultText.append(line).append(" ");
+			continue;
+
+		}
+		vRezultText.append(line).append("\n");
+	}
+	strings_txt = vRezultText.split('\n'); vRezultText = "";
+	foreach (line, strings_txt) {
+		line2 = line;
+		//qDebug() << "line" << line2;
+		if (line2.length() < m_maxCharInSentense) {
+			vRezultText.append(line2).append("\n");
+			continue;
+		}
+		line_items = line2.split(" "); line2 = "";
+		foreach (vWord, line_items) {
+			if (vWord.length() + line2.length() >= m_maxCharInSentense) {
+				vRezultText.append(line2).append("\n"); line2 = "";
+			}
+			line2 = line2.append(vWord).append(" ");
+		}
+		vRezultText.append(line2).append("\n"); line2 = "";
+	}
+
+	m_outputStr = vRezultText;
+
+	return "";
+}
+
+bool uTextCorrector::correctTest()
+{
+	// нужно просто убедиться что все исимволы кроме "-" и разделители (\s) - наместе.
+	int vChars1 = 0, vChars2 = 0;
+	QChar vChr;
+	QString vChars = QString::fromUtf8("\n\t "); // "-\n\t "
+
+	for (int var = 0; var < m_inputStr.length(); ++var) {
+		vChr = m_inputStr.at(var);
+		if (vChars.indexOf(vChr) == -1) {
+			vChars1++;
+		}
+	}
+	for (int var = 0; var < m_outputStr.length(); ++var) {
+		vChr = m_outputStr.at(var);
+		if (vChars.indexOf(vChr) == -1) {
+			vChars2++;
+		}
+	}
+	if (vChars1 != vChars2) {
+		qDebug() << "missing chars, input cnt.: " << vChars1 << " output cnt.: "<<vChars2;
+		return false;
+	}
+	return true;
+}
+
+
+QString uTextCorrector::correctWordsAll(){
 	QString line, vWord, vWordLW, vWordFR, line_part, line_partLC;
 	uStringType vType, vCurrType;
 	int vPartCnt, vPartCntW;
@@ -201,10 +343,11 @@ QString uTextCorrector::correct(QString &psIn)
 	QMap<QString,QString> vWordMapFounds;
 	QMap<QString,QString> vWordMapFoundsLC;
 	QStringList strings_txt = m_inputStr.split('\n'), line_items;
+	QChar vSChar;
 	kiilTransferLines(strings_txt);
 	int vReplaceCuonter = 0, vLineCounter = 0, vLineAll = strings_txt.size();
 	m_lisrWidget->clear();
-	foreach (line, strings_txt) {		
+	foreach (line, strings_txt) {
 		while (line.indexOf("  ") != -1) {
 			line = line.replace("  "," ");
 		}
@@ -302,6 +445,15 @@ top_step:
 				vWordLW = vWord;
 				vWordLW = vWordLW.toLower();
 				if (spell(vWordLW)) {
+					vFound = true;
+				} else if (vWordLW.length() > 1){
+					vSChar = vWordLW.at(0).toUpper();
+					vWordLW = vSChar + vWordLW.mid(1,vWordLW.length()-1);
+					if (spell(vWordLW)) {
+						vFound = true;
+					}
+				}
+				if (vFound) {
 					vCnt2 = vCnt3;
 					vWordStack.push(vWordLW);
 					vWordMapFounds.insert(vWord, vWordFR.trimmed());
@@ -330,7 +482,12 @@ top_step:
 	QString vStat = QString::fromUtf8("Replace cuonter: %1").arg(vReplaceCuonter);
 	m_statusLabel->setText(vStat);
 	return m_outputStr;
+
+
 }
+
+
+
 //\todo новый алгоритм, выделить максимальные слова по длине сначала
 QString uTextCorrector::correctWord(QString &psWord)
 {
@@ -612,6 +769,12 @@ int uTextCorrector::replaceQuestionWord(QStringList &psList, QString &psLine)
 		vListWPart = vWord.split(gMarkerQuestion);
 		if (vListWPart.size() != 2) {
 			continue;
+		} else {
+			/* знак вопроса должен быть между буквами*/
+			if (vListWPart.at(1).length() == 0) {
+				continue;
+			}
+
 		}
 		vWord_s = vWord;
 		vWord_s = vWord_s.replace("?","");
@@ -620,31 +783,40 @@ int uTextCorrector::replaceQuestionWord(QStringList &psList, QString &psLine)
 		if (vStype == uCirLetter) {
 			vLangPack = m_ruPack;
 		}
-
-		vWord_s = vListWPart.at(0);
-		vWord_e = vListWPart.at(1);
 		vWordFound = "";
-		iter = vLangPack->m_setMain.constBegin();
-		while (iter != vLangPack->m_setMain.constEnd()) {
-			vOkCounter = 0;
-			vWordOfSet = *iter;
-			vWordNextLen = vWordOfSet.length();
-			if (vWord_s.isEmpty()) {
-				vOkCounter++;
-			} else if (vWordOfSet.startsWith(vWord_s)) {
-				vOkCounter++;
+		if (spell(vWord_s)) {
+			vWordFound = vWord_s;
+		}
+
+		if (vWordFound.isEmpty()) {
+			/*
+			 * ищем слова по частм, предполагая что на месте вопроса уиеряна буква
+			 * типа: Ж
+			*/
+			vWord_s = vListWPart.at(0);
+			vWord_e = vListWPart.at(1);
+			iter = vLangPack->m_setMain.constBegin();
+			while (iter != vLangPack->m_setMain.constEnd()) {
+				vOkCounter = 0;
+				vWordOfSet = *iter;
+				vWordNextLen = vWordOfSet.length();
+				if (vWord_s.isEmpty()) {
+					vOkCounter++;
+				} else if (vWordOfSet.startsWith(vWord_s)) {
+					vOkCounter++;
+				}
+				if (vWord_e.isEmpty()) {
+					vOkCounter++;
+				} else if (vWordOfSet.endsWith(vWord_e)) {
+					vOkCounter++;
+				}
+				if (vWordLen+1 == vWordNextLen && vOkCounter == 2) {
+					vWordFound = vWordOfSet;
+					qDebug() << "Found for: " << vWord << vWordFound;
+					break;
+				}
+				iter++;
 			}
-			if (vWord_e.isEmpty()) {
-				vOkCounter++;
-			} else if (vWordOfSet.endsWith(vWord_e)) {
-				vOkCounter++;
-			}
-			if (vWordLen+1 == vWordNextLen && vOkCounter == 2) {
-				vWordFound = vWordOfSet;
-				qDebug() << "Found for: " << vWord << vWordFound;
-				break;
-			}
-			iter++;
 		}
 		if (vWordFound.isEmpty()) {
 			iter = vLangPack->m_setAdd.constBegin();
@@ -696,11 +868,13 @@ bool uLangPack::spell(QString &psWord)
 	} else if (m_setAdd.contains(vWord)) {
 		vRetVal = true;
 	}
-	vWord = vWord.toLower();
-	if (m_setMain.contains(vWord)) {
-		vRetVal = true;
-	} else if (m_setAdd.contains(vWord)) {
-		vRetVal = true;
+	if (!vRetVal) {
+		vWord = vWord.toLower();
+		if (m_setMain.contains(vWord)) {
+			vRetVal = true;
+		} else if (m_setAdd.contains(vWord)) {
+			vRetVal = true;
+		}
 	}
 	return vRetVal;
 

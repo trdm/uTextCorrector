@@ -267,7 +267,10 @@
      <item>
       <widget class="QPushButton" name="pushButton">
        <property name="text">
-        <string>Старт</string>
+        <string>Старт (F5)</string>
+       </property>
+       <property name="shortcut">
+        <string>F5</string>
        </property>
        <property name="autoDefault">
         <bool>true</bool>

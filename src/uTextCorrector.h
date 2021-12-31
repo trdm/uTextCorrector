@@ -56,6 +56,9 @@ class uTextCorrector
 		bool loadDictionary(QString& psFile);
 		bool loadDictionaryFile(QString& psFile, int psIsAff = 0, bool psToLC = false);
 		QString correct(QString& psIn);
+		QString correctWordsAll();
+		QString correctUnionSentence();
+		bool	correctTest();
 		QString correctWord(QString& psWord);
 		QString correctWordA0(QString& psWord);
 		QString correctWordA2(QString& psWord);
@@ -64,6 +67,11 @@ class uTextCorrector
 		QLabel* m_statusLabel; //, ui->label_status
 		QListWidget* m_lisrWidget;
 		void status(QString& psStatuStr);
+
+		// trdm 2021-12-30 18:00:24
+		int m_maxCharInSentense;
+		bool m_unionSentence;
+		bool m_correctWordsAndChar;
 	private:
 		QString dictFile;
 		uStringType typeString(QString& str);
@@ -93,6 +101,7 @@ class uTextCorrector
 
 		QStringList m_listReplBeforeChek;
 		QStringList m_listReplAfterChek;
+
 
 };
 
